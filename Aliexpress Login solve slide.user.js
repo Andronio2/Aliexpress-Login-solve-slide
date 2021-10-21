@@ -1,31 +1,32 @@
 // ==UserScript==
 // @name         Aliexpress Login solve slide
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Автоматический вход на Алиэкспресс с решением капчи
 // @author       Andronio
 // @homepage     https://github.com/Andronio2/Aliexpress-Login-solve-slide
 // @supportURL   https://github.com/Andronio2/Aliexpress-Login-solve-slide
-// @updateURL    https://github.com/Andronio2/Aliexpress-Login-solve-slide/raw/master/Aliexpress%20Login%20solve%20slide.user.js
-// @downloadURL  https://github.com/Andronio2/Aliexpress-Login-solve-slide/raw/master/Aliexpress%20Login%20solve%20slide.user.js
+// @updateURL    https://github.com/Andronio2/Aliexpress-Login-solve-slide/raw/main/Aliexpress%20Login%20solve%20slide.user.js
+// @downloadURL  https://github.com/Andronio2/Aliexpress-Login-solve-slide/raw/main/Aliexpress%20Login%20solve%20slide.user.js
 // @match        https://login.aliexpress.com/*
 // @match        https://login.aliexpress.ru/*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
-(function() {
+(async function() {
     'use strict';
 
 /*
  * Если пароль постоянный, то прописать
  */
 
-let alwaysPass = "";		
+let alwaysPass = "";
 
 /*
  * Дальше не трогать
  */
-	let login = document.getElementById('fm-login-id');
+    await waitForElement('#fm-login-id', 250, 30)
+    let login = document.getElementById('fm-login-id');
 	let passw = document.getElementById('fm-login-password');
 	login.addEventListener('paste', enterLoginHandler);
 	passw.addEventListener('paste', enterLoginHandler);
