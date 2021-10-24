@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aliexpress Login solve slide
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.2
 // @description  Автоматический вход на Алиэкспресс с решением капчи
 // @author       Andronio
 // @homepage     https://github.com/Andronio2/Aliexpress-Login-solve-slide
@@ -10,6 +10,7 @@
 // @downloadURL  https://github.com/Andronio2/Aliexpress-Login-solve-slide/raw/main/Aliexpress%20Login%20solve%20slide.user.js
 // @match        https://login.aliexpress.com/*
 // @match        https://login.aliexpress.ru/*
+// @match        https://passport.aliexpress.com//newlogin/account/check.do/_____tmd_____/punish?*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -25,74 +26,85 @@ let alwaysPass = "";
 /*
  * Дальше не трогать
  */
-    await waitForElement('#fm-login-id', 250, 30)
-    let login = document.getElementById('fm-login-id');
-	let passw = document.getElementById('fm-login-password');
-	login.addEventListener('paste', enterLoginHandler);
-	passw.addEventListener('paste', enterLoginHandler);
-	login.focus();
+    if (window.location.href.startsWith('https://login.aliexpress.')) {
+        await waitForElement('#fm-login-id', 250, 30)
+        let login = document.getElementById('fm-login-id');
+        let passw = document.getElementById('fm-login-password');
+        login.addEventListener('paste', enterLoginHandler);
+        passw.addEventListener('paste', enterLoginHandler);
+        login.focus();
 
-	async function enterLoginHandler(event) {
-		let text = (event.clipboardData || window.clipboardData).getData('text').trim();
-		let mass = [];
-		if (alwaysPass.trim()) {
-            if (/\w+@[\w\.-]+\.\w+/.test(text)){
-                mass.push(text);
-                mass.push(alwaysPass.trim());
-            } else mass = null;
-		} else {
-			mass = parseString(text);
-		}
-        if (mass) {
-            event.preventDefault();
-            let enterButton = document.querySelector(".fm-button");
-            setInput(login, mass[0]);
-			await sleep(200);
-			let ready = await waitForElement('.fm-loading', 100, 30, true);
-			if (!ready) return alert("Не дождался загрузки логина");
-            setInput(passw, mass[1]);
-			await sleep(500);
-			ready = await waitForElement('.fm-loading', 100, 30, true);
-			if (!ready) return alert("Не дождался загрузки слайдера");
-			if (isPresent('#nc_1_n1z')){
-// Решаем слайдер
-				let slider = document.getElementById('nc_1_n1z');
-				let coord = slider.getBoundingClientRect();
-				let field = document.getElementById('nc_1__scale_text');
-				let fieldWidth = field.getBoundingClientRect();
-				sendMouseEvent(coord.x + coord.height / 2, coord.y + coord.width / 2, slider, 'mousedown');
-				await sleep(200);
-				sendMouseEvent(coord.x + coord.height + fieldWidth.width, coord.y + coord.width / 2, slider, 'mousemove');
-				await sleep(500);
-                ready = await waitForElement('#nc-loading-circle', 100, 30, true);
-                if (!ready) return alert("Не дождался загрузки слайдера 2");
-                if (isPresent('#login-check-code .errloading')) location.reload();
-                ready = await waitForElement('#nc_1__imgCaptcha_img', 100, 30, false);
-                if (!ready) return alert("Не дождался загрузки капчи");
-                let captcha = getCode();
-                if (captcha === '----') {
-                    do {
-                        document.querySelector('#nc_1__imgCaptcha_img img').click();
-                        await sleep(1000);
-                        captcha = getCode();
-                    } while (captcha === '----');
+        async function enterLoginHandler(event) {
+            let text = (event.clipboardData || window.clipboardData).getData('text').trim();
+            let mass = [];
+            if (alwaysPass.trim()) {
+                if (/\w+@[\w\.-]+\.\w+/.test(text)){
+                    mass.push(text);
+                    mass.push(alwaysPass.trim());
+                } else mass = null;
+            } else {
+                mass = parseString(text);
+            }
+            if (mass) {
+                event.preventDefault();
+                let enterButton = document.querySelector(".fm-button");
+                setInput(login, mass[0]);
+                await sleep(200);
+                let ready = await waitForElement('.fm-loading', 100, 30, true);
+                if (!ready) return alert("Не дождался загрузки логина");
+                setInput(passw, mass[1]);
+                await sleep(500);
+                ready = await waitForElement('.fm-loading', 100, 30, true);
+                if (!ready) return alert("Не дождался загрузки слайдера");
+                if (isPresent('#nc_1_n1z')){
+                    // Решаем слайдер
+                    await solveSlider();
+                    await sleep(500);
+                    ready = await waitForElement('#nc-loading-circle', 100, 30, true);
+                    if (!ready) return alert("Не дождался загрузки слайдера 2");
+                    if (isPresent('#login-check-code .errloading')) location.reload();
+                    ready = await waitForElement('#nc_1__imgCaptcha_img', 100, 30, false);
+                    if (!ready) return alert("Не дождался загрузки капчи");
+                    let captcha = getCode();
+                    if (captcha === '----') {
+                        do {
+                            document.querySelector('#nc_1__imgCaptcha_img img').click();
+                            await sleep(1000);
+                            captcha = getCode();
+                        } while (captcha === '----');
+                    }
+                    const captchaInput = document.getElementById('nc_1_captcha_input');
+                    setInput(captchaInput, captcha);
+                    await sleep(200);
+                    document.getElementById('nc_1_scale_submit').click();
+                    // Неверная капча
+                    ready = await waitForElement('#nc_1_scale_submit', 100, 5, true);
+                    if (!ready) return alert("Не дождался появления кнопки вход");
                 }
-                let captchaInput = document.getElementById('nc_1_captcha_input');
-                setInput(captchaInput, captcha);
-				await sleep(200);
-                document.getElementById('nc_1_scale_submit').click();
-// Неверная капча
-                ready = await waitForElement('#nc_1_scale_submit', 100, 5, true);
-                if (!ready) return alert("Не дождался появления кнопки вход");
-			}
-            enterButton.click();
-		}
-	}
+                enterButton.click();
+            }
+        }
+    }
 
-	function setInput(input, value) {
-		if (!input) {
-		  return;
-		}
+    if (window.location.href.startsWith('https://passport.aliexpress.com//newlogin/account/check.do/_____tmd_____/punish?')) {
+        await waitForElement('#nc_1_n1z', 250, 30);
+        await solveSlider();
+    }
+
+    async function solveSlider() {
+        const slider = document.getElementById('nc_1_n1z');
+        const coord = slider.getBoundingClientRect();
+        const field = document.getElementById('nc_1__scale_text');
+        const fieldWidth = field.getBoundingClientRect();
+        sendMouseEvent(coord.x + coord.height / 2, coord.y + coord.width / 2, slider, 'mousedown');
+        await sleep(200);
+        sendMouseEvent(coord.x + coord.height + fieldWidth.width, coord.y + coord.width / 2, slider, 'mousemove');
+    }
+
+    function setInput(input, value) {
+        if (!input) {
+            return;
+        }
 
 		const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
 		nativeInputValueSetter.call(input, value);
