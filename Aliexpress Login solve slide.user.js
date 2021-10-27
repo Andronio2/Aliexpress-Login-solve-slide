@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aliexpress Login solve slide
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      2.3
 // @description  Автоматический вход на Алиэкспресс с решением капчи
 // @author       Andronio
 // @homepage     https://github.com/Andronio2/Aliexpress-Login-solve-slide
@@ -47,7 +47,7 @@ let alwaysPass = "";
             }
             if (mass) {
                 event.preventDefault();
-                let enterButton = document.querySelector(".fm-button");
+                let enterButton = document.querySelector('button[type="submit"]');
                 setInput(login, mass[0]);
                 await sleep(200);
                 let ready = await waitForElement('.fm-loading', 100, 30, true);
@@ -81,13 +81,15 @@ let alwaysPass = "";
                     ready = await waitForElement('#nc_1_scale_submit', 100, 5, true);
                     if (!ready) return alert("Не дождался появления кнопки вход");
                 }
+                ready = await waitForElement('button:not([disabled])', 100, 30);
+                if (!ready) return alert("Не дождался появления кнопки вход");
                 enterButton.click();
             }
         }
     }
 
     if (window.location.href.startsWith('https://passport.aliexpress.com//newlogin/account/check.do/_____tmd_____/punish?')) {
-        await waitForElement('#nc_1_n1z', 250, 30);
+        await waitForElement('#nc_1_n1z', 250, 60);
         await solveSlider();
     }
 
