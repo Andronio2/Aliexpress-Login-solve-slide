@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aliexpress Login solve slide
 // @namespace    http://tampermonkey.net/
-// @version      2.3
+// @version      2.4
 // @description  Автоматический вход на Алиэкспресс с решением капчи
 // @author       Andronio
 // @homepage     https://github.com/Andronio2/Aliexpress-Login-solve-slide
@@ -21,7 +21,13 @@
  * Если пароль постоянный, то прописать
  */
 
-let alwaysPass = "";
+const alwaysPass = "";
+
+// Настройки слайдера
+const sliderDelayBefore  = 1000;   // Количество мс до протяжки слайдера
+const sliderDelayBetween = 100;    // Время шага слайдера, мс
+const steps              = 10;     // Количество шагов слайдера
+const maxDiv             = 10;     // Смещение слайдера для рандомизации
 
 /*
  * Дальше не трогать
@@ -98,9 +104,17 @@ let alwaysPass = "";
         const coord = slider.getBoundingClientRect();
         const field = document.getElementById('nc_1__scale_text');
         const fieldWidth = field.getBoundingClientRect();
+
+        await sleep(sliderDelayBefore);
         sendMouseEvent(coord.x + coord.height / 2, coord.y + coord.width / 2, slider, 'mousedown');
-        await sleep(200);
+        for(let i = 0; i < steps; i++) {
+            await sleep(sliderDelayBetween);
+            sendMouseEvent(coord.x + coord.height + fieldWidth.width / steps * i + Math.floor(Math.random() * maxDiv - maxDiv / 2), coord.y + coord.width / 2 + Math.floor(Math.random() * maxDiv - maxDiv / 2), slider, 'mousemove');
+        }
+        await sleep(sliderDelayBetween);
         sendMouseEvent(coord.x + coord.height + fieldWidth.width, coord.y + coord.width / 2, slider, 'mousemove');
+        await sleep(sliderDelayBetween);
+        sendMouseEvent(coord.x + coord.height + fieldWidth.width, coord.y + coord.width / 2, slider, 'mouseup');
     }
 
     function setInput(input, value) {
